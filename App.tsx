@@ -22,11 +22,15 @@ import CurrentStatus from './components/CurrentStatus';
 import ShoppingProductGenerator from './components/ShoppingProductGenerator';
 import TrendDataViewer from './components/TrendDataViewer';
 import CategoryTrendSelector from './components/CategoryTrendSelector';
-import CategoryTrendView from './components/CategoryTrendTable'; // Updated import
+import CategoryTrendView from './components/CategoryTrendTable'; 
+import LoginScreen from './components/LoginScreen'; // New Import
 import { generateTopicsFromMainKeyword, generateTopicsFromAllKeywords, generateBlogStrategy, fetchRecommendedKeywords, generateSustainableTopics, generateSerpStrategy, executePromptAsCompetitionAnalysis, generateCategoryTrendData, generateAgeGroupTrends } from './services/keywordService';
 import type { SearchSource, Feature, KeywordData, BlogPostData, KeywordMetrics, GeneratedTopic, BlogStrategyReportData, RecommendedKeyword, SustainableTopicCategory, GoogleSerpData, SerpStrategyReportData, TopicGroup, AgeGroupTrend } from './types';
 
 const App: React.FC = () => {
+    // Auth State
+    const [apiKey, setApiKey] = useState<string | null>(localStorage.getItem('gemini_api_key'));
+
     const { results, loading, error, search, initialLoad, setResults, setError, setInitialLoad, setLoading } = useSearch();
     const [source, setSource] = useState<SearchSource>('google');
     const [feature, setFeature] = useState<Feature>('competition');
@@ -67,6 +71,21 @@ const App: React.FC = () => {
     const [promptResultError, setPromptResultError] = useState<string | null>(null);
 
     const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
+
+    // Login Handler
+    const handleLogin = (key: string) => {
+        localStorage.setItem('gemini_api_key', key);
+        setApiKey(key);
+    };
+
+    // Logout Handler
+    const handleLogout = () => {
+        if(window.confirm('로그아웃 하시겠습니까? API 키가 삭제됩니다.')) {
+            localStorage.removeItem('gemini_api_key');
+            setApiKey(null);
+            window.location.reload();
+        }
+    };
 
     const handleFeatureSelect = (newFeature: Feature) => {
         if (feature === newFeature) return;
@@ -454,6 +473,11 @@ const App: React.FC = () => {
 
     const anyLoading = loading || recoLoading || sustainableTopicsLoading || promptResultLoading || categoryTrendLoading;
 
+    // Show Login Screen if no API Key
+    if (!apiKey) {
+        return <LoginScreen onLogin={handleLogin} />;
+    }
+
     return (
         <div className="bg-[#0f172a] text-white font-sans h-screen flex flex-col relative overflow-hidden">
             {/* Flashy Background with lighter/brighter accents */}
@@ -473,7 +497,17 @@ const App: React.FC = () => {
                     <p className="text-lg text-slate-400 font-light">
                         자동완성검색어, 경쟁력 분석, 쇼핑커넥트, 트렌드 분석을 한번에
                     </p>
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 right-4 flex gap-2">
+                         <button 
+                            onClick={handleLogout}
+                            className="p-2 rounded-full bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-red-300 transition-all focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center justify-center h-10 w-10 shadow-lg border border-slate-700/50"
+                            aria-label="로그아웃"
+                            title="API 키 삭제 및 로그아웃"
+                        >
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
                         <button 
                             onClick={() => setIsHelpModalOpen(true)}
                             className="p-2 rounded-full bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-cyan-300 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 flex items-center justify-center h-10 w-10 shadow-lg border border-slate-700/50"

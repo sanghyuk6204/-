@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { 
     KeywordData, 
@@ -51,6 +52,16 @@ const PROXIES: Proxy[] = [
 const MAX_RETRIES_PER_PROXY = 2;
 const RETRY_DELAY_MS = 1000;
 const FETCH_TIMEOUT_MS = 15000;
+
+// Helper to get API Key safely
+const getApiKey = (): string => {
+    // Priority: 1. LocalStorage (User input), 2. Environment Variable
+    const key = localStorage.getItem('gemini_api_key') || process.env.API_KEY;
+    if (!key) {
+        throw new Error("API Key가 설정되지 않았습니다. 로그인 화면에서 키를 입력해주세요.");
+    }
+    return key;
+};
 
 function extractJsonFromText(text: string): any {
     let jsonString = text.trim();
@@ -161,7 +172,7 @@ export const fetchRelatedKeywords = async (keyword: string, source: SearchSource
         }
     } catch (e) {
         console.warn("Fetch failed, fallback to AI", e);
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey: getApiKey() });
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `List 10 autocomplete keywords for "${keyword}" on ${source}. Return JSON array of strings.`,
@@ -176,10 +187,7 @@ export const fetchRelatedKeywords = async (keyword: string, source: SearchSource
 };
 
 export const fetchNaverBlogPosts = async (keyword: string): Promise<BlogPostData[]> => {
-    // Naver blog search often blocks proxies or requires complex parsing. 
-    // We will simulate this with AI for reliability in this demo context, 
-    // as reliable scraping without a backend is difficult.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Simulate a search for "${keyword}" on Naver Blogs. 
     Generate 5 realistic blog post titles and dummy URLs that might appear in the top results.
@@ -202,7 +210,7 @@ export const fetchNaverBlogPosts = async (keyword: string): Promise<BlogPostData
 };
 
 export const analyzeKeywordCompetition = async (keyword: string): Promise<KeywordMetrics> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Analyze the keyword "${keyword}" for SEO competition.
     Provide the following metrics and analysis in JSON format:
@@ -238,7 +246,7 @@ export const analyzeKeywordCompetition = async (keyword: string): Promise<Keywor
 };
 
 export const executePromptAsCompetitionAnalysis = async (promptText: string): Promise<KeywordMetrics> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Execute the following prompt and format the result to match the structure of a KeywordMetrics object.
     
@@ -282,7 +290,7 @@ export const executePromptAsCompetitionAnalysis = async (promptText: string): Pr
 };
 
 export const generateTopicsFromMainKeyword = async (keyword: string): Promise<GeneratedTopic[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `Generate 10 blog topics for the keyword "${keyword}". Return JSON array of objects with: id, title, thumbnailCopy, strategy.`;
     
     try {
@@ -298,7 +306,7 @@ export const generateTopicsFromMainKeyword = async (keyword: string): Promise<Ge
 };
 
 export const generateTopicsFromAllKeywords = async (mainKeyword: string, relatedKeywords: string[]): Promise<GeneratedTopic[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Main keyword: "${mainKeyword}"
     Related keywords: ${relatedKeywords.join(', ')}
@@ -318,7 +326,7 @@ export const generateTopicsFromAllKeywords = async (mainKeyword: string, related
 };
 
 export const generateBlogStrategy = async (keyword: string, topPosts: BlogPostData[]): Promise<BlogStrategyReportData> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const titles = topPosts.map(p => p.title).join('\n');
     const prompt = `
     Analyze these top blog titles for keyword "${keyword}":
@@ -342,7 +350,7 @@ export const generateBlogStrategy = async (keyword: string, topPosts: BlogPostDa
 };
 
 export const generateRelatedKeywords = async (keyword: string): Promise<GoogleSerpData> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Find related searches and "People also ask" questions for "${keyword}".
     Return JSON with:
@@ -379,7 +387,7 @@ export const generateRelatedKeywords = async (keyword: string): Promise<GoogleSe
 };
 
 export const generateSerpStrategy = async (keyword: string, serpData: GoogleSerpData): Promise<SerpStrategyReportData> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Based on SERP data for "${keyword}":
     Related: ${serpData.related_searches.join(', ')}
@@ -403,7 +411,7 @@ export const generateSerpStrategy = async (keyword: string, serpData: GoogleSerp
 };
 
 export const fetchRecommendedKeywords = async (): Promise<RecommendedKeyword[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Recommend 10 trending keywords for blog content creation today.
     Return JSON array of: { id, keyword, reason, title, thumbnailCopy, strategy }
@@ -433,7 +441,7 @@ export const fetchRecommendedKeywords = async (): Promise<RecommendedKeyword[]> 
 };
 
 export const generateSustainableTopics = async (keyword: string): Promise<SustainableTopicCategory[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Generate sustainable blog topic categories for "${keyword}".
     Return JSON array of objects: { category, suggestions: [{ title, keywords: [], strategy }] }
@@ -454,9 +462,6 @@ export const generateSustainableTopics = async (keyword: string): Promise<Sustai
 
 export const fetchCurrentWeather = async (): Promise<WeatherData> => {
      try {
-        // Use a simple weather API if possible, or simulate with a public one.
-        // Since we cannot use arbitrary tools, we'll try to fetch from wttr.in which returns JSON.
-        // It's a free public API.
         const response = await fetch("https://wttr.in/Seoul?format=j1");
         if (!response.ok) throw new Error("Weather fetch failed");
         const data = await response.json();
@@ -468,7 +473,6 @@ export const fetchCurrentWeather = async (): Promise<WeatherData> => {
             humidity: `${current.humidity}%`
         };
     } catch (e) {
-        // Fallback or return dummy if fetch fails (common in CORS environments without proxy)
         return {
             temperature: "--",
             condition: "정보 없음",
@@ -479,7 +483,7 @@ export const fetchCurrentWeather = async (): Promise<WeatherData> => {
 };
 
 export const generateProductDescription = async (input: string): Promise<ShoppingProductData> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Generate a shopping product description for: "${input}".
     Return JSON: { productName, catchphrase, sellingPoints: [], description, hashtags: [] }
@@ -498,7 +502,7 @@ export const generateProductDescription = async (input: string): Promise<Shoppin
 };
 
 export const generateTrendAnalysis = async (keyword: string): Promise<TrendAnalysisData> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Analyze trends for keyword "${keyword}".
     Return JSON: { 
@@ -525,7 +529,7 @@ export const generateTrendAnalysis = async (keyword: string): Promise<TrendAnaly
 };
 
 export const generateCategoryTrendData = async (category: string): Promise<TopicGroup[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Analyze trend keywords for category "${category}" in Korea.
     Return JSON array: [{ topic, keywords: [{ rank, keyword, change, status }] }]
@@ -545,7 +549,7 @@ export const generateCategoryTrendData = async (category: string): Promise<Topic
 };
 
 export const generateAgeGroupTrends = async (category: string): Promise<AgeGroupTrend[]> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     const prompt = `
     Analyze age group trends for category "${category}" in Korea.
     Return JSON array: [{ ageGroup, keywords: [{ rank, keyword, change, status }] }]
